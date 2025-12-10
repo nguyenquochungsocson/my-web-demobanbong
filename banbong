@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#667eea">
+    <title>Ball Shooter Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            overflow-x: hidden;
+        }
+        
+        .controller {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .header h1 {
+            color: #1e3c72;
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .status-card {
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        .status-disconnected {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+        }
+        
+        .status-connecting {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            color: #856404;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-connected {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 8px 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f2994a 0%, #f2c94c 100%);
+            color: white;
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .section h3 {
+            color: #1e3c72;
+            margin-bottom: 12px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .collapse-icon {
+            font-size: 1.2em;
+            transition: transform 0.3s;
+        }
+        
+        .collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+        
+        .collapsible-content {
+            max-height: 2000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsed .collapsible-content {
+            max-height: 0;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        
+        .direction-pad {
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left home right"
+                ". down .";
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .btn-up { grid-area: up; }
+        .btn-down { grid-area: down; }
+        .btn-left { grid-area: left; }
+        .btn-right { grid-area: right; }
+        .btn-home {
+            grid-area: home;
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+        }
+        
+        .speed-display {
+            text-align: center;
+            font-size: 3em;
+            font-weight: bold;
+            color: #1e3c72;
+            margin: 15px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .speed-display::after {
+            content: 'PWM';
+            position: absolute;
+            bottom: 5px;
+            right: 15px;
+            font-size: 0.3em;
+            color: #999;
+        }
+        
+        .slider-container {
+            margin: 15px 0;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: linear-gradient(90deg, #4CAF50 0%, #FFC107 50%, #F44336 100%);
+            outline: none;
+            margin: 15px 0;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: white;
+            border: 4px solid #667eea;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: white;
+            border: 4px solid #667eea;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+        
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #666;
+            margin-top: -10px;
+        }
+        
+        .preset-btn {
+            padding: 12px;
+            font-size: 0.95em;
+        }
+        
+        .spin-input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .input-wrapper {
+            text-align: center;
+        }
+        
+        .input-wrapper label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .input-wrapper input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.3em;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            transition: transform 0.3s;
+            max-width: 90%;
+            text-align: center;
+        }
+        
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .command-log {
+            background: #263238;
+            color: #aed581;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .command-log div {
+            padding: 3px 0;
+            border-bottom: 1px solid #37474f;
+        }
+        
+        .command-log div:last-child {
+            border-bottom: none;
+        }
+        
+        .info-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 15px;
+            font-size: 0.85em;
+            margin: 5px 5px 5px 0;
+        }
+        
+        .help-text {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        @media (max-width: 400px) {
+            .controller {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em;
+            }
+            
+            .btn {
+                font-size: 1em;
+                padding: 12px;
+            }
+            
+            .speed-display {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="controller">
+        <div class="header">
+            <h1>🎯 Ball Shooter</h1>
+            <p>Professional Controller</p>
+        </div>
+        
+        <!-- STATUS -->
+        <div class="status-card status-disconnected" id="statusCard">
+            <div id="statusText">⚠️ Chưa kết nối Bluetooth</div>
+            <div id="statusDetail" style="font-size: 0.85em; margin-top: 5px; opacity: 0.8;"></div>
+        </div>
+        
+        <!-- BLUETOOTH CONNECTION -->
+        <button class="btn btn-primary" id="btnConnect" onclick="connectBluetooth()">
+            📱 KẾT NỐI BLUETOOTH
+        </button>
+        
+        <!-- QUICK ACTIONS -->
+        <div class="section">
+            <h3>⚡ Điều khiển nhanh</h3>
+            <div class="grid-2">
+                <button class="btn btn-success" onclick="sendCommand('START')" disabled id="btnStart">
+                    ▶️ BẮT ĐẦU
+                </button>
+                <button class="btn btn-danger" onclick="sendCommand('STOP')" disabled id="btnStop">
+                    ⏹️ DỪNG
+                </button>
+            </div>
+            <button class="btn btn-warning" onclick="sendCommand('HOME')" disabled id="btnHome">
+                🏠 VỀ VỊ TRÍ GỐC
+            </button>
+        </div>
+        
+        <!-- MODE SELECTION -->
+        <div class="section">
+            <div class="collapsible-header" onclick="toggleSection(this)">
+                <h3>🎮 Chế độ hoạt động</h3>
+                <span class="collapse-icon">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div class="grid-2">
+                    <button class="btn btn-info" onclick="sendCommand('MANUAL')" disabled>
+                        ✋ MANUAL
+                    </button>
+                    <button class="btn btn-info" onclick="sendCommand('AUTO')" disabled>
+                        🤖 AUTO
+                    </button>
+                </div>
+                <div class="help-text">
+                    💡 <strong>Manual:</strong> Điều khiển thủ công<br>
+                    💡 <strong>Auto:</strong> Tự động theo pattern
+                </div>
+            </div>
+        </div>
+        
+        <!-- SHOOTING MODES -->
+        <div class="section">
+            <div class="collapsible-header" onclick="toggleSection(this)">
+                <h3>🎯 Kiểu bắn</h3>
+                <span class="collapse-icon">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <button class="btn btn-primary" onclick="sendCommand('MODE1')" disabled>
+                    📍 BẮN GẦN (Short)
+                </button>
+                <button class="btn btn-primary" onclick="sendCommand('MODE2')" disabled>
+                    🎯 BẮN XA (Long)
+                </button>
+                <button class="btn btn-primary" onclick="sendCommand('MODE3')" disabled>
+                    🎲 NGẪU NHIÊN (Random)
+                </button>
+                <button class="btn btn-primary" onclick="sendCommand('MODE4')" disabled>
+                    🌀 XOÁY (Spin)
+                </button>
+                <button class="btn btn-primary" onclick="sendCommand('MODE5')" disabled>
+                    ⭐ TÙY CHỈNH (Custom)
+                </button>
+                <div class="help-text">
+                    📊 Mỗi mode có tốc độ và góc bắn khác nhau
+                </div>
+            </div>
+        </div>
+        
+        <!-- ANGLE CONTROL -->
+        <div class="section">
+            <div class="collapsible-header" onclick="toggleSection(this)">
+                <h3>🎮 Điều chỉnh góc</h3>
+                <span class="collapse-icon">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div class="direction-pad">
+                    <button class="btn btn-warning btn-up" onclick="sendCommand('UP')" disabled>
+                        ⬆️
+                    </button>
+                    <button class="btn btn-warning btn-left" onclick="sendCommand('LEFT')" disabled>
+                        ⬅️
+                    </button>
+                    <button class="btn btn-home" onclick="sendCommand('HOME')" disabled>
+                        🏠
+                    </button>
+                    <button class="btn btn-warning btn-right" onclick="sendCommand('RIGHT')" disabled>
+                        ➡️
+                    </button>
+                    <button class="btn btn-warning btn-down" onclick="sendCommand('DOWN')" disabled>
+                        ⬇️
+                    </button>
+                </div>
+                <div class="help-text">
+                    🎯 UP/DOWN: Điều chỉnh góc cao thấp<br>
+                    🎯 LEFT/RIGHT: Xoay ngang trái phải
+                </div>
+            </div>
+        </div>
+        
+        <!-- SPEED CONTROL -->
+        <div class="section">
+            <div class="collapsible-header" onclick="toggleSection(this)">
+                <h3>⚡ Điều chỉnh tốc độ</h3>
+                <span class="collapse-icon">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <!-- Quick buttons -->
+                <div class="grid-2" style="margin-bottom: 15px;">
+                    <button class="btn btn-success" onclick="sendCommand('SPEED+')" disabled>
+                        ⬆️ TĂNG (+10)
+                    </button>
+                    <button class="btn btn-warning" onclick="sendCommand('SPEED-')" disabled>
+                        ⬇️ GIẢM (-10)
+                    </button>
+                </div>
+                
+                <!-- Speed display -->
+                <div class="speed-display" id="speedDisplay">200</div>
+                
+                <!-- Slider -->
+                <div class="slider-container">
+                    <input type="range" min="50" max="255" value="200" 
+                           class="slider" id="speedSlider" 
+                           oninput="updateSpeedDisplay(this.value)"
+                           disabled>
+                    <div class="slider-labels">
+                        <span>50 (Chậm)</span>
+                        <span>255 (Nhanh)</span>
+                    </div>
+                </div>
+                
+                <button class="btn btn-success" onclick="applySpeed()" disabled id="btnApplySpeed">
+                    ✔️ ÁP DỤNG TỐC ĐỘ
+                </button>
+                
+                <!-- Presets -->
+                <div style="margin-top: 15px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold; color: #1e3c72;">
+                        ⚡ Tốc độ mẫu:
+                    </label>
+                    <div class="grid-3">
+                        <button class="btn btn-info preset-btn" onclick="setSpeedPreset(120)" disabled>
+                            🐢<br>120
+                        </button>
+                        <button class="btn btn-info preset-btn" onclick="setSpeedPreset(180)" disabled>
+                            🏃<br>180
+                        </button>
+                        <button class="btn btn-info preset-btn" onclick="setSpeedPreset(240)" disabled>
+                            🚀<br>240
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="help-text">
+                    💡 Giới hạn: 50-255 PWM<br>
+                    💡 Mỗi lần tăng/giảm: 10 đơn vị
+                </div>
+            </div>
+        </div>
+        
+        <!-- SPIN CONTROL -->
+        <div class="section">
+            <div class="collapsible-header" onclick="toggleSection(this)">
+                <h3>🌀 Điều khiển xoáy</h3>
+                <span class="collapse-icon">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div class="spin-input-group">
+                    <div class="input-wrapper">
+                        <label>🔴 Bánh trái</label>
+                        <input type="number" id="motor1" value="220" min="50" max="255" disabled>
+                    </div>
+                    <div class="input-wrapper">
+                        <label>🔵 Bánh phải</label>
+                        <input type="number" id="motor2" value="180" min="50" max="255" disabled>
+                    </div>
+                </div>
+                
+                <button class="btn btn-success" onclick="applySpin()" disabled id="btnApplySpin">
+                    🌀 ÁP DỤNG XOÁY
+                </button>
+                
+                <!-- Spin presets -->
+                <div style="margin-top: 15px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold; color: #1e3c72;">
+                        🌀 Xoáy mẫu:
+                    </label>
+                    <div class="grid-2">
+                        <button class="btn btn-info preset-btn" onclick="setSpinPreset(220, 180)" disabled>
+                            ↪️ Xoáy trái
+                        </button>
+                        <button class="btn btn-info preset-btn" onclick="setSpinPreset(180, 220)" disabled>
+                            ↩️ Xoáy phải
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="help-text">
+                    💡 Chênh lệch lớn = xoáy mạnh<br>
+                    💡 Ví dụ: 220/180 = xoáy trái vừa
+                </div>
+            </div>
+        </div>
+        
+        <!-- COMMAND LOG -->
+        <div class="section">
+            <div class="collapsible-header" onclick="toggleSection(this)">
+                <h3>📋 Lịch sử lệnh</h3>
+                <span class="collapse-icon">▼</span>
+            </div>
+            <div class="collapsible-content">
+                <div class="command-log" id="commandLog">
+                    <div style="color: #80deea;">Sẵn sàng gửi lệnh...</div>
+                </div>
+                <button class="btn btn-danger" onclick="clearLog()" style="margin-top: 10px; padding: 10px; font-size: 0.9em;">
+                    🗑️ Xóa log
+                </button>
+            </div>
+        </div>
+        
+        <!-- INFO -->
+        <div class="section" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+            <h3>ℹ️ Thông tin</h3>
+            <div class="info-badge">Web Bluetooth API</div>
+            <div class="info-badge">Chrome Android</div>
+            <div class="info-badge">HC-05 Module</div>
+            <p style="margin-top: 10px; font-size: 0.9em; color: #555;">
+                <strong>Yêu cầu:</strong> Chrome trình duyệt trên Android, bật Bluetooth, cho phép truy cập khi được yêu cầu.
+            </p>
+        </div>
+    </div>
+    
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        // ==================== BIẾN TOÀN CỤC ====================
+        let bluetoothDevice;
+        let characteristic;
+        let isConnected = false;
+        let commandHistory = [];
+        
+        // ==================== KIỂM TRA HỖ TRỢ ====================
+        window.addEventListener('load', () => {
+            if (!navigator.bluetooth) {
+                showToast('❌ Trình duyệt không hỗ trợ Bluetooth!', 'error');
+                document.getElementById('btnConnect').disabled = true;
+                document.getElementById('btnConnect').textContent = '❌ KHÔNG HỖ TRỢ';
+                document.getElementById('statusText').textContent = '❌ Không hỗ trợ Web Bluetooth';
+                document.getElementById('statusDetail').textContent = 'Vui lòng sử dụng Chrome trên Android';
+            } else {
+                console.log('✅ Web Bluetooth được hỗ trợ');
+                document.getElementById('statusDetail').textContent = 'Nhấn nút để kết nối';
+            }
+        });
+        
+        // ==================== KẾT NỐI BLUETOOTH ====================
+        async function connectBluetooth() {
+            try {
+                updateStatus('connecting', '🔄 Đang quét thiết bị...', 'Vui lòng chọn HC-05 hoặc BallShooter');
+                
+                // Request device
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { namePrefix: 'HC-' },
+                        { namePrefix: 'Ball' }
+                    ],
+                    optionalServices: ['0000ffe0-0000-1000-8000-00805f9b34fb']
+                });
+                
+                updateStatus('connecting', '🔄 Đang kết nối...', bluetoothDevice.name);
+                addLog('Tìm thấy: ' + bluetoothDevice.name);
+                
+                // Connect to GATT Server
+                const server = await bluetoothDevice.gatt.connect();
+                addLog('✅ Đã kết nối GATT Server');
+                
+                // Get Service
+                const service = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+                addLog('✅ Đã lấy Service');
+                
+                // Get Characteristic
+                characteristic = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
+                addLog('✅ Đã lấy Characteristic');
+                
+                // Setup disconnect handler
+                bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+                
+                // Success
+                isConnected = true;
+                updateStatus('connected', '✅ Đã kết nối: ' + bluetoothDevice.name, 'Sẵn sàng gửi lệnh');
+                enableAllButtons(true);
+                
+                document.getElementById('btnConnect').textContent = '✅ ĐÃ KẾT NỐI';
+                document.getElementById('btnConnect').disabled = true;
+                
+                showToast('✅ Kết nối thành công!', 'success');
+                addLog('🎉 Hệ thống sẵn sàng!');
+                
+            } catch(error) {
+                console.error('Lỗi Bluetooth:', error);
+                updateStatus('disconnected', '❌ Kết nối thất bại', error.message);
+                addLog('❌ Lỗi: ' + error.message);
+                showToast('❌ Không thể kết nối: ' + error.message, 'error');
+            }
+        }
+        
+        // ==================== XỬ LÝ NGẮT KẾT NỐI ====================
+        function onDisconnected() {
+            isConnected = false;
+            updateStatus('disconnected', '⚠️ Đã ngắt kết nối', 'Vui lòng kết nối lại');
+            enableAllButtons(false);
+            
+            document.getElementById('btnConnect').textContent = '📱 KẾT NỐI LẠI';
+            document.getElementById('btnConnect').disabled = false;
+            
+            showToast('⚠️ Bluetooth đã ngắt kết nối', 'warning');
+            addLog('⚠️ Ngắt kết nối');
+        }
+        
+        // ==================== GỬI LỆNH ====================
+        async function sendCommand(command) {
+            if (!isConnected || !characteristic) {
+                showToast('⚠️ Vui lòng kết nối Bluetooth trước!', 'warning');
+                return;
+            }
+            
+            try {
+                // Hiệu ứng nút
+                if (event && event.target) {
+                    event.target.style.opacity = '0.6';
+                    setTimeout(() => {
+                        event.target.style.opacity = '1';
+                    }, 200);
+                }
+                
+                // Convert to bytes
+                const encoder = new TextEncoder();
+                const data = encoder.encode(command + '\n');
+                
+                // Send via Bluetooth
+                await characteristic.writeValue(data);
+                
+                // Log
+                addLog('📤 Gửi: ' + command);
+                console.log('✅ Đã gửi:', command);
+                
+                // Toast notification
+                showToast('📤 ' + command, 'info');
+                
+            } catch(error) {
+                console.error('Lỗi gửi lệnh:', error);
+                addLog('❌ Lỗi gửi: ' + error.message);
+                showToast('❌ Không thể gửi lệnh!', 'error');
+            }
+        }
